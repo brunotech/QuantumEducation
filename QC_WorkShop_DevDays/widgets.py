@@ -176,10 +176,7 @@ def minicomposer(nqubits=5, bloch=False, dirac=False, qsphere=False):
             for button in sqg_btns:
                 button.disabled = False
             for button in mqg_btns:
-                if nqubits > 1:
-                    button.disabled = False
-                else:
-                    button.disabled = True
+                button.disabled = nqubits <= 1
             for button in qubit_btns:
                 button.disabled = True
             instruction.value = "Select a gate to add to the circuit:"
