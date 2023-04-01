@@ -87,19 +87,12 @@ def Wavefunction( obj , *args, **kwargs):
 
 
 def Measurement(quantumcircuit, *args, **kwargs): 
-	#Displays the measurement results of a quantum circuit 
-	p_M = True
-	S = 1
 	ref = False
-	NL = False
-	if 'shots' in kwargs:
-		S = int(kwargs['shots'])
+	S = int(kwargs['shots']) if 'shots' in kwargs else 1
 	if 'return_M' in kwargs:
 		ret = kwargs['return_M']
-	if 'print_M' in kwargs:
-		p_M = kwargs['print_M']
-	if 'column' in kwargs:
-		NL = kwargs['column']
+	p_M = kwargs.get('print_M', True)
+	NL = kwargs.get('column', False)
 	M1 = execute(quantumcircuit, M_simulator, shots=S).result().get_counts(quantumcircuit)
 	M2 = {}
 	k1 = list(M1.keys())
@@ -110,20 +103,20 @@ def Measurement(quantumcircuit, *args, **kwargs):
 		for j in np.arange(len(key_list)):
 			new_key = new_key+key_list[len(key_list)-(j+1)]
 		M2[new_key] = v1[k]
-	if(p_M):
+	if p_M:
 		k2 = list(M2.keys())
 		v2 = list(M2.values())
 		measurements = ''
 		for i in np.arange(len(k2)):
-			m_str = str(v2[i])+'|'
+			m_str = f'{str(v2[i])}|'
 			for j in np.arange(len(k2[i])):
-				if(k2[i][j] == '0'):
-					m_str = m_str + '0' 
-				if(k2[i][j] == '1'):
-					m_str = m_str + '1'
-				if( k2[i][j] == ' ' ):
-					m_str = m_str +'>|'
-			m_str = m_str + '>   '
+				if (k2[i][j] == '0'):
+					m_str = f'{m_str}0'
+				if (k2[i][j] == '1'):
+					m_str = f'{m_str}1'
+				if ( k2[i][j] == ' ' ):
+					m_str = f'{m_str}>|'
+			m_str = f'{m_str}>   '
 			if(NL):
 				m_str = m_str + '\n'
 			measurements = measurements + m_str
@@ -134,14 +127,11 @@ def Measurement(quantumcircuit, *args, **kwargs):
 
 
 #Math Operations
-def Oplus(bit1,bit2): 
+def Oplus(bit1,bit2):
 	'''Adds too bits of O's and 1's (modulo 2)'''
 	bit = np.zeros(len(bit1))
 	for i in np.arange( len(bit) ):
-		if( (bit1[i]+bit2[i])%2 == 0 ):
-			bit[i] = 0
-		else: 
-			bit[i] = 1
+		bit[i] = 0 if ( (bit1[i]+bit2[i])%2 == 0 ) else 1
 	return bit 
 
 
@@ -154,10 +144,7 @@ def Binary(number,total):
 		if( N/((2)**(qubits-i-1)) >= 1 ):
 			b_num[i] = 1
 			N = N - 2 ** (qubits-i-1)
-	B = [] 
-	for j in np.arange(len(b_num)):
-		B.append(int(b_num[j]))
-	return B
+	return [int(b_num[j]) for j in np.arange(len(b_num))]
 
 def From_Binary(s):
     num = 0
@@ -166,13 +153,9 @@ def From_Binary(s):
     return num
 
 def B2D(in_bi):
-    len_in = len(in_bi)
-    in_bi = in_bi[::-1]
-    dec = 0
-    for i in range(0,len_in):
-        if in_bi[i] != '0':
-            dec += 2**i
-    return dec
+	len_in = len(in_bi)
+	in_bi = in_bi[::-1]
+	return sum(2**i for i in range(len_in) if in_bi[i] != '0')
 
 #  Custom Gates
 def x_Transformation(qc, qreg, state): 

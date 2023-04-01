@@ -64,7 +64,7 @@ def plot_circles(state_vector, nrows=1, **kwargs):
     fontsize = kwargs.get('fontsize', 12)
     matplotlib.rc('font', family='serif', weight='bold', size=fontsize)
     N = len(state_vector)
-    assert 0 < nrows and N % nrows == 0, 'invalid value of nrows'
+    assert nrows > 0 and N % nrows == 0, 'invalid value of nrows'
     ncols = N // nrows
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=(2 * ncols, nrows + 1))
     for index in range(N):

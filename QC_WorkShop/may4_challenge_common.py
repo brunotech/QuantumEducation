@@ -26,11 +26,14 @@ def bloch_vec(qc: QuantumCircuit) -> np.ndarray:
     else:
         theta = np.pi
         phi = 0
-    bloch_vector = np.round([
-        np.sin(theta)*np.cos(phi),
-        np.sin(theta)*np.sin(phi),
-        np.cos(theta)], 5)
-    return bloch_vector
+    return np.round(
+        [
+            np.sin(theta) * np.cos(phi),
+            np.sin(theta) * np.sin(phi),
+            np.cos(theta),
+        ],
+        5,
+    )
 
 
 def vec_in_braket(vec: np.ndarray) -> str:
@@ -41,9 +44,9 @@ def vec_in_braket(vec: np.ndarray) -> str:
         if rounded != 0:
             basis = format(i, 'b').zfill(nqubits)
             state += np.str(rounded).replace('-0j', '+0j')
-            state += '|' + basis + '\\rangle + '
+            state += f'|{basis}' + '\\rangle + '
     state = state.replace("j", "i")
-    return state[0:-2].strip()
+    return state[:-2].strip()
 
 
 def statevec(qc: QuantumCircuit) -> qi.Statevector:

@@ -63,7 +63,7 @@ def lex_index(n, k, lst):
     if len(lst) != k:
         raise VisualizationError("list should have length k")
     comb = list(map(lambda x: n - 1 - x, lst))
-    dualm = sum([n_choose_k(comb[k - 1 - i], i + 1) for i in range(k)])
+    dualm = sum(n_choose_k(comb[k - 1 - i], i + 1) for i in range(k))
     return int(dualm)
 
 
@@ -108,8 +108,7 @@ def phase_to_rgb(complex_number):
     [0, 2pi] and then to the HSL color wheel
     """
     angles = (np.angle(complex_number) + (np.pi * 4)) % (np.pi * 2)
-    rgb = colorsys.hls_to_rgb(angles / (np.pi * 2), 0.5, 0.5)
-    return rgb
+    return colorsys.hls_to_rgb(angles / (np.pi * 2), 0.5, 0.5)
 
 
 def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=False,
@@ -183,122 +182,121 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=False,
         # start with the max
         probmix = we.max()
         prob_location = we.argmax()
-        if probmix > 0.001:
-            # get the max eigenvalue
-            state = stateall[:, prob_location]
-            loc = np.absolute(state).argmax()
-
-            # get the element location closes to lowest bin representation.
-            for j in range(2 ** num):
-                test = np.absolute(np.absolute(state[j]) -
-                                   np.absolute(state[loc]))
-                if test < 0.001:
-                    loc = j
-                    break
-
-            # remove the global phase
-            angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
-            angleset = np.exp(-1j * angles)
-            state = angleset * state
-            state.flatten()
-
-            # start the plotting
-            # Plot semi-transparent sphere
-            u = np.linspace(0, 2 * np.pi, 25)
-            v = np.linspace(0, np.pi, 25)
-            x = np.outer(np.cos(u), np.sin(v))
-            y = np.outer(np.sin(u), np.sin(v))
-            z = np.outer(np.ones(np.size(u)), np.cos(v))
-            ax.plot_surface(x, y, z, rstride=1, cstride=1, color='k',
-                            alpha=0.05, linewidth=0)
-
-            # Get rid of the panes
-            ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-            ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-            ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-
-            # Get rid of the spines
-            ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-            ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-            ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-
-            # Get rid of the ticks
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.set_zticks([])
-
-            d = num
-            for i in range(2 ** num):
-
-                # get x,y,z points
-                element = bin(i)[2:].zfill(num)
-                weight = element.count("1")
-                zvalue = -2 * weight / d + 1
-                number_of_divisions = n_choose_k(d, weight)
-                weight_order = bit_string_index(element)
-                angle = (float(weight) / d) * (np.pi * 2) + \
-                        (weight_order * 2 * (np.pi / number_of_divisions))
-
-                if (weight > d / 2) or (((weight == d / 2) and
-                                         (weight_order >= number_of_divisions / 2))):
-                    angle = np.pi - angle - (2 * np.pi / number_of_divisions)
-
-                if force_angle:
-                    angle = (360 / number_of_divisions) * weight_order
-                    angle = angle * np.pi/180
-
-                xvalue = np.sqrt(1 - zvalue ** 2) * np.cos(angle)
-                yvalue = np.sqrt(1 - zvalue ** 2) * np.sin(angle)
-
-                # get prob and angle - prob will be shade and angle color
-                prob = np.real(np.dot(state[i], state[i].conj()))
-                colorstate = phase_to_rgb(state[i])
-
-                alfa = 1
-                if yvalue >= 0.1:
-                    alfa = 1.0 - yvalue
-
-                if prob > 0 and show_state_labels:
-                    rprime = 1.3
-                    angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
-                    xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
-                    yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
-                    zvalue_text = rprime * np.cos(angle_theta)
-                    element_text = '$\\vert' + element + '\\rangle$'
-                    if show_state_angles:
-                        element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
-                        element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
-                    ax.text(xvalue_text, yvalue_text, zvalue_text, element_text,
-                            ha='center', va='center', size=12)
-
-                ax.plot([xvalue], [yvalue], [zvalue],
-                        markerfacecolor=colorstate,
-                        markeredgecolor=colorstate,
-                        marker='o', markersize=np.sqrt(prob) * 30, alpha=alfa)
-
-                a = Arrow3D([0, xvalue], [0, yvalue], [0, zvalue],
-                            mutation_scale=20, alpha=prob, arrowstyle="-",
-                            color=colorstate, lw=2)
-
-                ax.add_artist(a)
-
-            # add weight lines
-            for weight in range(d + 1):
-                theta = np.linspace(-2 * np.pi, 2 * np.pi, 100)
-                z = -2 * weight / d + 1
-                r = np.sqrt(1 - z ** 2)
-                x = r * np.cos(theta)
-                y = r * np.sin(theta)
-                ax.plot(x, y, z, color=(.5, .5, .5), lw=1, ls=':', alpha=.5)
-
-            # add center point
-            ax.plot([0], [0], [0], markerfacecolor=(.5, .5, .5),
-                    markeredgecolor=(.5, .5, .5), marker='o', markersize=3,
-                    alpha=1)
-            we[prob_location] = 0
-        else:
+        if probmix <= 0.001:
             break
 
+        # get the max eigenvalue
+        state = stateall[:, prob_location]
+        loc = np.absolute(state).argmax()
+
+        # get the element location closes to lowest bin representation.
+        for j in range(2 ** num):
+            test = np.absolute(np.absolute(state[j]) -
+                               np.absolute(state[loc]))
+            if test < 0.001:
+                loc = j
+                break
+
+        # remove the global phase
+        angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
+        angleset = np.exp(-1j * angles)
+        state = angleset * state
+        state.flatten()
+
+        # start the plotting
+        # Plot semi-transparent sphere
+        u = np.linspace(0, 2 * np.pi, 25)
+        v = np.linspace(0, np.pi, 25)
+        x = np.outer(np.cos(u), np.sin(v))
+        y = np.outer(np.sin(u), np.sin(v))
+        z = np.outer(np.ones(np.size(u)), np.cos(v))
+        ax.plot_surface(x, y, z, rstride=1, cstride=1, color='k',
+                        alpha=0.05, linewidth=0)
+
+        # Get rid of the panes
+        ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+
+        # Get rid of the spines
+        ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+
+        # Get rid of the ticks
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
+
+        d = num
+        for i in range(2 ** num):
+
+            # get x,y,z points
+            element = bin(i)[2:].zfill(num)
+            weight = element.count("1")
+            zvalue = -2 * weight / d + 1
+            number_of_divisions = n_choose_k(d, weight)
+            weight_order = bit_string_index(element)
+            angle = (float(weight) / d) * (np.pi * 2) + \
+                    (weight_order * 2 * (np.pi / number_of_divisions))
+
+            if (weight > d / 2) or (((weight == d / 2) and
+                                     (weight_order >= number_of_divisions / 2))):
+                angle = np.pi - angle - (2 * np.pi / number_of_divisions)
+
+            if force_angle:
+                angle = (360 / number_of_divisions) * weight_order
+                angle = angle * np.pi/180
+
+            xvalue = np.sqrt(1 - zvalue ** 2) * np.cos(angle)
+            yvalue = np.sqrt(1 - zvalue ** 2) * np.sin(angle)
+
+            # get prob and angle - prob will be shade and angle color
+            prob = np.real(np.dot(state[i], state[i].conj()))
+            colorstate = phase_to_rgb(state[i])
+
+            alfa = 1
+            if yvalue >= 0.1:
+                alfa = 1.0 - yvalue
+
+            if prob > 0 and show_state_labels:
+                rprime = 1.3
+                angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
+                xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
+                yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
+                zvalue_text = rprime * np.cos(angle_theta)
+                element_text = '$\\vert' + element + '\\rangle$'
+                if show_state_angles:
+                    element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
+                    element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
+                ax.text(xvalue_text, yvalue_text, zvalue_text, element_text,
+                        ha='center', va='center', size=12)
+
+            ax.plot([xvalue], [yvalue], [zvalue],
+                    markerfacecolor=colorstate,
+                    markeredgecolor=colorstate,
+                    marker='o', markersize=np.sqrt(prob) * 30, alpha=alfa)
+
+            a = Arrow3D([0, xvalue], [0, yvalue], [0, zvalue],
+                        mutation_scale=20, alpha=prob, arrowstyle="-",
+                        color=colorstate, lw=2)
+
+            ax.add_artist(a)
+
+        # add weight lines
+        for weight in range(d + 1):
+            theta = np.linspace(-2 * np.pi, 2 * np.pi, 100)
+            z = -2 * weight / d + 1
+            r = np.sqrt(1 - z ** 2)
+            x = r * np.cos(theta)
+            y = r * np.sin(theta)
+            ax.plot(x, y, z, color=(.5, .5, .5), lw=1, ls=':', alpha=.5)
+
+        # add center point
+        ax.plot([0], [0], [0], markerfacecolor=(.5, .5, .5),
+                markeredgecolor=(.5, .5, .5), marker='o', markersize=3,
+                alpha=1)
+        we[prob_location] = 0
     n = 32
     theta = np.ones(n)
 
